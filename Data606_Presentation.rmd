@@ -1,0 +1,52 @@
+---
+title: "Data606 Presentation 2.37"
+author: "Yuen Chun Wong"
+date: "September 12, 2017"
+output: html_document
+---
+
+
+## 2.37 Portfolio Return
+
+A portfolio's value increases by 18% during a financial boom and by 9% during normal times. It decreases by 12% during a recession. What is the expected return on this portfolio if each scenario is equally likely?
+
+First, we create a data frame object
+
+```{r list-data}
+
+e <- c("Boom","Normal","Recession")
+c <- c(0.333, 0.333, 0.333)
+r <- c(0.18, 0.09, -0.12)
+data <- data.frame(e,c,r)
+
+names(data) <- c("Economy","Change-Pct","Return")
+
+print(data)
+
+```
+
+Then, Calculate piecewise expected return.
+Try to use melt() and cast() from reshape to form a "Pivot" table
+The grand total of the expected returns would be the portfolio return.
+```{r format-calculate-data}
+data[,"Expected-Return"] <- 0.0
+data["Expected-Return"] <- data["Change-Pct"] * data["Return"]
+
+library(reshape)
+
+data.m <- melt(data,id=c(1:3), measure=c(4))
+data.c <- cast(data.m, Economy ~ variable, sum,  margins=c("grand_row"))
+
+
+```
+
+Show Result in table format.
+```{r Display-Result}
+library(htmlTable)
+
+htmlTable(data.c)
+
+```
+
+The Portoflio return is 5%
+
