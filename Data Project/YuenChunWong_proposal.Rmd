@@ -1,6 +1,7 @@
 ---
-title: DATA 606 Data Project Proposal
-author: Yuen Chun Wong
+title: "DATA 606 Data Project Proposal"
+author: "Yuen Chun Wong"
+output: pdf_document
 ---
 
 
@@ -10,34 +11,18 @@ author: Yuen Chun Wong
 
 ```{r load-and-prepare-data}
 #All collision by date
-#CollisionByDate <- tbl_df(read.csv("109PoliceMotorCollisionWeatherData.csv", stringsAsFactors = FALSE, check.names = FALSE))
+#CollisionByDate <- tbl_df(read.csv("109PoliceMotorCollision.csv", stringsAsFactors = FALSE, check.names = FALSE))
+
+#Weather By Date
+#WeatherByDate <- tbl_df(read.csv("109PoliceMotorCollision.csv", stringsAsFactors = FALSE, check.names = FALSE))
 
 #get subset, weather = rainy
-bad_date_Collision <- as.data.frame(c())
 #bad_date_Collision <- subset(CollisionByDate, PRCP > 0 || snow > 0 .... )
 
 
-#NOAA data
-#WSF2 - Fastest 2-minute wind speed
-#WSF5 - Fastest 5-second wind speed
+#NOAA weather data
 #SNOW - Snowfall
-#WT03 - Thunder
-#WESF - Water equivalent of snowfall
-#WT04 - Ice pellets, sleet, snow pellets, or small hail" 
 #PRCP - Precipitation
-#WT06 - Glaze or rime 
-#WT08 - Smoke or haze 
-#SNWD - Snow depth
-#WT09 - Blowing or drifting snow
-#WDF2 - Direction of fastest 2-minute wind
-#AWND - Average wind speed
-#WDF5 - Direction of fastest 5-second wind
-#WT01 - Fog, ice fog, or freezing fog (may include heavy fog)
-#TMAX - Maximum temperature
-#WT02 - Heavy fog or heaving freezing fog (not always distinguished from fog)
-#TAVG - Average Temperature.
-#TMIN - Minimum temperature
-
 
 ```
 
@@ -49,14 +34,19 @@ Does car accident is predictable by weather conditions?
 109 Precinct in Flushing, NY (https://goo.gl/maps/9aPSt9yqDp42), from one of my previous project I found that  has most of the car accidents in entire New York City (http://rpubs.com/nyjon2k/316465/) #3 "NYPD Motor Vehicle Collisions" section.  Therefore, I am interested: Does the weather condition lead to more car accidents?  For example, there will be more vehicle collosion in rainy day while there will be more pedestrian and cyclists killed.
 
 Research question:
-For bad weather date (weather type = rain, fog, or ice ), What will be car accident frequency be in 109 Police station?
+By weather condition (such as rain or snow ), What will be car accident frequency be in 109 Police station?
 
+Does the average of car accident are same between good weather and bad weather?
+
+Any correlation between # of car accident and weather condition?
+
+Can we predict how many car accident with given weather condition?
 
 ### Cases 
 
 **What are the cases, and how many are there?**
 
-Each case represent the sum of the car accidents in a rainy date. `r nrow(rainydate)` observations in the given data set.
+Each case represent the sum of the car accidents in a weather conditions. 3 years daily data will be collected in observations in the given data set.
 
 
 ### Data collection 
@@ -83,12 +73,21 @@ I am going to download 2 dataset and merge them together by date before analysis
 Both data set are daily data.
 
 NYPD Moter Vehicle Collision Data can be queried with URL/JSON request:
-https://data.cityofnewyork.us/api/views/h9gi-nx95/rows.json?accessType=DOWNLOAD
+(https://data.cityofnewyork.us/Public-Safety/NYPD-Motor-Vehicle-Collisions/h9gi-nx95/data)
+or it can be downloaded from Google Cloud (https://cloud.google.com/bigquery/public-data/)
 
-
-NOAA historical data: 
+NOAA historical weather data: 
 weather data of area near 109 police station. (https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table).  Data can be collected with zip code or country information.
-
+-Click the link above, then click "Data Access" and choose "CDO Search"
+-In the Climate Data Online Search page
+ -Choose "Daily Summaries", Choose "Date Range", Choose "Counties" for station
+ -Enter "Queens, New York" and then click search
+ -Filter data by weather station "USW00094789" or 	"JFK INTERNATIONAL AIRPORT, NY US"
+ -Once in the result page, click "Add to cart" in Queens County, NY section
+ -Click View Cart, Choose "Custom GHCN-Daily CSV" for output format
+ -Once again confirm date range, click "continue"
+ -In custom output format, click "Select All" and "continue"
+ -enter email address and confirm the subscription, the data file will be sent to the email address.
 
 Data defination could be found:
 
@@ -114,9 +113,12 @@ The explanatory variable is weather condition and is categorival.
 
 ### Relevant summary statistics 
 
-**Provide summary statistics relevant to your research question. For example, if you’re comparing means across groups provide means, SDs, sample sizes of each group. This step requires the use of R, hence a code chunk is provided below. Insert more code chunks as needed.**
+**Provide summary statistics relevant to your research question. For example, if you are comparing means across groups provide means, SDs, sample sizes of each group. This step requires the use of R, hence a code chunk is provided below. Insert more code chunks as needed.**
 
-I plan to include histogram of the car accidents and determine if it is normal distribution
+I plan to include histogram of the accident in general from 2013 to 2017
 
-If the distribution is normal, i would find out the 95% confident intervals.
+I also want to do the # of accident per day and correlation with weather condition (such as amont of rain or snow)
+
+At the end, i will do linear regression for the # of accident with weather condition
+
 
