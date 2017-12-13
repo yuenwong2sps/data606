@@ -1,0 +1,298 @@
+---
+title: "DATA 606 Data Project "
+author: "Yuen Chun Wong"
+output: pdf_document
+---
+
+
+
+### Data Preparation
+
+
+```{r load-and-prepare-data}
+options(warn=-1)
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+
+#All collision by date
+CollisionByDate <- read.csv(file="109PoliceMotorCollision.csv", header=TRUE, sep=",")
+CollisionByDate$DATE <- format(as.Date(CollisionByDate$DATE, "%m/%d/%Y"), "%Y-%m-%d" ) 
+# some car accident record doens't specify the reason, let's use vehicle type instead
+
+#Weather By Date
+WeatherByDate <- read.csv("NYCWeather.csv", header=TRUE, sep=",")
+WeatherByDate$DATE <- format(as.Date(WeatherByDate$DATE, "%m/%d/%Y"), "%Y-%m-%d" ) 
+  
+#NOAA weather data
+#SNOW - Snowfall
+#PRCP - Precipitation
+
+```
+
+
+### Research question 
+
+Is car accident predictable by weather conditions?
+
+109 Precinct in Flushing, NY (https://goo.gl/maps/9aPSt9yqDp42), from one of my previous project "NYPD Motor Vehicle Collisions", I found that it has most of the car accidents in the entire New York City (http://rpubs.com/nyjon2k/316465/).  Therefore, I am interested: Does the weather condition lead to more car accidents?  
+
+Research question:
+
+What will be car accident frequency near 109 Police station?
+
+What are the car accident frequencies between good and bad weather?
+
+Is there any correlation between number of car accidents and weather condition?
+
+Can we predict how many car accidents with given weather condition?
+
+### Cases 
+
+**What are the cases, and how many are there?**
+
+Each case represent the car accidents with weather conditions. About 3 years of daily data are be collected in observations in the given data set.
+
+
+### Data collection 
+
+
+
+1) NYPD Moter Vehicle Collison Data is maintained by NYPD department
+(https://catalog.data.gov/dataset/nypd-motor-vehicle-collisions-07420)
+
+2) National Ocean and Atmosperic Adiminstration (NOAA) Historical data.
+(https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table)
+
+
+
+### Type of study 
+
+This is an observational study.
+
+
+### Data Source 
+
+2 dataset are mergedtogether by date before analysis.
+
+Both data set are daily data.
+
+NYPD Moter Vehicle Collision Data can be queried with URL/JSON request:
+(https://data.cityofnewyork.us/Public-Safety/NYPD-Motor-Vehicle-Collisions/h9gi-nx95/data)
+or it can be downloaded from Google Cloud (https://cloud.google.com/bigquery/public-data/)
+
+NOAA historical weather data: 
+weather data of area near 109 police station. (https://www.climate.gov/maps-data/dataset/past-weather-zip-code-data-table).  Data can be collected with zip code or country information.
+-Click the link above, then click "Data Access" and choose "CDO Search"
+-In the Climate Data Online Search page
+ -Choose "Daily Summaries", Choose "Date Range", Choose "Counties" for station
+ -Enter "Queens, New York" and then click search
+ -Filter data by weather station "USW00094789" or 	"JFK INTERNATIONAL AIRPORT, NY US"
+ -Once in the result page, click "Add to cart" in Queens County, NY section
+ -Click View Cart, Choose "Custom GHCN-Daily CSV" for output format
+ -Once again confirm date range, click "continue"
+ -In custom output format, click "Select All" and "continue"
+ -enter email address and confirm the subscription, the data file will be sent to the email address.
+
+Data defination could be found:
+
+https://catalog.data.gov/harvest/object/c3268bdd-a141-4ab6-808d-e0d1f23b7201
+
+https://www.ncdc.noaa.gov/cdo-web/datasets#GHCND
+
+
+
+### Response 
+
+**What is the response variable, and what type is it (numerical/categorical)?**
+
+The response variable is car accident frequency per day and is numerical.
+
+
+### Explanatory 
+
+**What is the explanatory variable, and what type is it (numerical/categorival)?**
+
+The explanatory variable is weather condition and is numerical in rain and snow level. It is also converted to categorival for later discussion.
+
+
+###Clean up and prepare data
+Short description of the vehicle accidents could be found in contributing factor vehicle 1. If it is "unspecified", use vehicle type code 1 instead. 
+Summarize the basic accident data by date.
+
+```{r }
+
+AccidentByDate <- CollisionByDate %>%
+  select (DATE, CONTRIBUTING.FACTOR.VEHICLE.1, VEHICLE.TYPE.CODE.1) %>%
+  mutate(
+    Type = ifelse(CONTRIBUTING.FACTOR.VEHICLE.1 =="Unspecified", paste0("Unspecified-", VEHICLE.TYPE.CODE.1),
+                  
+          ifelse(CONTRIBUTING.FACTOR.VEHICLE.1 =="", paste0("Unspecified-", VEHICLE.TYPE.CODE.1),  as.character(CONTRIBUTING.FACTOR.VEHICLE.1)
+          )  
+                  
+                  )
+  ) %>%
+  group_by(DATE, Type) %>%
+  summarize(
+    Freq = n()
+    
+  )
+
+```
+
+
+###Frequency of Car Accidents from year 2013-2017
+```{r }
+AccidentFreq <- AccidentByDate %>%
+  group_by(Type) %>%
+  summarize(
+    Total = sum(Freq)
+  )
+
+
+ggplot(AccidentFreq, aes(x=AccidentFreq$Type, AccidentFreq$Total, color=AccidentFreq$Total)) + geom_bar(stat = "identity",fill='lightblue', color="lightblue") + xlab("Types") +
+  ylab("Frequency") + 
+  theme(axis.text.x=element_text(angle=90,hjust=0.2,vjust=0.2))
+
+```
+
+The most frequent accident near 109 police station is "unspecified-PASSENGER VEHICLE" from year 2013-2017.
+
+
+
+
+###Weather vs car accident(unspecified-PASSENGER VEHICLE)
+Passenger vehicles have the highest accident frequency in this area, does it correlate to weather condition?
+
+For simplification, create "water" level by combining both Precipitation and amount of snowfall.
+
+Determine if the frequency of the accident is correlated to weather condition.
+
+The accident frequency data for unspecified-Passenger vehicle are summarized by date. 
+```{r }
+
+#create water column
+WeatherByDate$Water <- WeatherByDate$PRCP + WeatherByDate$SNOW
+
+
+Passenger_Vehicle_AccidentByDate <- AccidentByDate %>%
+  filter(Type=="Unspecified-PASSENGER VEHICLE") %>%
+  select(DATE, Freq)
+
+pv_Accident_Weather_ByDate <- merge(Passenger_Vehicle_AccidentByDate,WeatherByDate,by="DATE")
+
+
+Num_of_Passenger_Vehicle_Accident <- pv_Accident_Weather_ByDate %>% 
+  summarize(
+    Total = sum(Freq)
+  )
+
+Num_of_Passenger_Vehicle_Accident_GoodWeather <- pv_Accident_Weather_ByDate %>% 
+  filter(Water ==0) %>%
+  summarize(
+    Total = sum(Freq)
+  )
+
+  
+Num_of_Passenger_Vehicle_Accident_BadWeather <- pv_Accident_Weather_ByDate %>% 
+  filter(Water > 0) %>%
+  summarize(
+    Total = sum(Freq)
+  )
+
+
+```
+
+The total number of accident (Unspecified-Passenger Vehicle):
+```{r }
+(Num_of_Passenger_Vehicle_Accident)
+```
+
+
+The total number of accident (Unspecified-Passenger Vehicle) in good weather:
+```{r }
+(Num_of_Passenger_Vehicle_Accident_GoodWeather)
+```
+
+
+The total number of accident (Unspecified-Passenger Vehicle) in bad weather:
+```{r }
+(Num_of_Passenger_Vehicle_Accident_BadWeather)
+```
+
+
+
+###Does the vehicle accident correlate to the bad weather? 
+
+```{r }
+
+#only select bad weather or water > 0
+pv_Accident_Weather_ByDate <- pv_Accident_Weather_ByDate %>% filter(Water >0)
+
+pv_Accident_Weather_noDate <- pv_Accident_Weather_ByDate[,2:dim(pv_Accident_Weather_ByDate)[2]]
+
+
+pv_cor_accident_Weather <- cor(pv_Accident_Weather_noDate,  use = "complete.obs")
+
+(pv_cor_accident_Weather)
+
+```
+
+From the above correlation maxtrix for vehicle accidents vs weathers, the vehicle accident frequency doesn't have any strong correlation with rain, snow or both.
+
+###Linear Regression
+```{r }
+
+lm(pv_Accident_Weather_noDate$Water~ pv_Accident_Weather_noDate$Freq)
+
+plot(pv_Accident_Weather_noDate$Water,pv_Accident_Weather_noDate$Freq, main="Rain or Snow vs Accident Frequency (Unspecified Passenger Car)", 
+    xlab="Water(Rain or snow) amount", ylab="Accident Frequency on 'bad' weather day" )
+lines(lowess(pv_Accident_Weather_noDate$Water , pv_Accident_Weather_noDate$Freq), col="blue") # lowess line (x,y)
+
+
+```
+
+From the chart above, the accidents are concentrated on Water(rain or snow amount) from 0.01 to 2.  It indicates that drivers are probably less caution when the weather starts to get bad but still visible.
+
+When Water amount goes higher,there are fewer days (observation) with the accident and the frequency are around 1-5.  It indicates that drivers are more caution or probably fewer drivers are on the road when the visiblity is getting low.  Also, few observation of accidents could be the result from the NYC government that may enforce "emergency  vehicle only" order on extreme heavy snow day.  
+
+There is no good conclusion for linear regression based on the result of correlation matrix and frequency observation above. 
+
+
+###Are the means of accident with visible and low visible condition are equal?
+For bad weather (water >= 0.01) and vehicle accident = "Unspecified - Passenger Vehicle", the border line between the observation is around water = 2.
+
+We may define the condition:
+Water <= 2 is visible 
+water > 2 is Low Visible
+
+Are the means of the vehicle accidents between 2 conditions are equal?
+
+```{r }
+
+#clone dataset
+pv_AccidentV_Weather_noDate <-  pv_Accident_Weather_noDate
+
+#create a new column for visiblity
+pv_AccidentV_Weather_noDate$Visible <- ifelse(pv_Accident_Weather_noDate$Water <= 2, "Visible","Low  Visible")
+
+#plot the box chart
+boxplot(pv_AccidentV_Weather_noDate$Freq ~ pv_AccidentV_Weather_noDate$Visible, data = pv_AccidentV_Weather_noDate, xlab = "Visible",
+   ylab = "Freq", main = "Unspecified - Passenger Vehicle")
+
+acct_lm <- lm(pv_AccidentV_Weather_noDate$Freq ~ pv_AccidentV_Weather_noDate$Visible, data = pv_AccidentV_Weather_noDate)
+
+summary(acct_lm)
+anova(acct_lm)
+
+
+```
+
+Since the P-value is very large, we can't reject the null hypothesis.  The means of the vehicle accidents between 2 conditions are similar.
+
+###Conclusion
+
+We may not be able to predict the number of vehicle accidents with weather condition such as using amount of rain.  But we can tell that there will be more car accidents when the weather is bad but still visible.  Drivers may be less caution when the rain or snow level is low.  This finding may suggest that when the weather forecast shows it is possible to have low level of rain or snow, police department, hospital or even insurance and car towing company may need to arrange their staffs for the expecting car accidents its victim according to the weather condition.
+
